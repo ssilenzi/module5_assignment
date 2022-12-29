@@ -4,18 +4,17 @@
 
 Please, commit into separate branches. In this way we can diff and merge our work.
 
-    git checkout -b yourname
-    git push -u origin yourname
+    git checkout -b yourname -t origin/yourname
 
-## Tools
+## GitHub Setup
+
+### Tools
 
 https://gitforwindows.org/ (Windows only)
 
 https://github.com/magicmonty/bash-git-prompt (Linux only)
 
 https://www.syntevo.com/smartgit/ (Windows and Linux)
-
-## Credential managers
 
 ### Windows
 
