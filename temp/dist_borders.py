@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
+TOL = 1e-12
+
 def plot_square(p1, p2):
     x = [p1[0], p2[0], p2[0], p1[0], p1[0]]
     y = [p1[1], p1[1], p2[1], p2[1], p1[1]]
@@ -25,14 +27,14 @@ def dist(p1, p2):
 
 def distance_from_borders(pose, rect_p1, rect_p2):
     if pose[0] > rect_p1[0] and pose[0] < rect_p2[0] and pose[1] > rect_p1[1] and pose[1] < rect_p2[1]:
-        if math.cos(pose[2]) == 0:
+        if abs(math.cos(pose[2])) < TOL:
             d = (rect_p1[1] - pose[1]) / math.sin(pose[2])
             if d > 0:
                 return d
             else:
                 d = (rect_p2[1] - pose[1]) / math.sin(pose[2])
                 return d
-        elif math.sin(pose[2]) == 0:
+        elif abs(math.sin(pose[2])) < TOL:
             d = (rect_p1[0] - pose[0]) / math.cos(pose[2])
             if d > 0:
                 return d
@@ -107,14 +109,14 @@ def distance_from_borders(pose, rect_p1, rect_p2):
 
 def distance_from_borders_full(pose, rect_p1, rect_p2):
     if pose[0] > rect_p1[0] and pose[0] < rect_p2[0] and pose[1] > rect_p1[1] and pose[1] < rect_p2[1]:
-        if math.cos(pose[2]) == 0:
+        if abs(math.cos(pose[2])) < TOL:
             d = (rect_p1[1] - pose[1]) / math.sin(pose[2])
             if d > 0:
                 return (d, (pose[0], rect_p1[1]))
             else:
                 d = (rect_p2[1] - pose[1]) / math.sin(pose[2])
                 return (d, (pose[0], rect_p2[1]))
-        elif math.sin(pose[2]) == 0:
+        elif abs(math.sin(pose[2])) < TOL:
             d = (rect_p1[0] - pose[0]) / math.cos(pose[2])
             if d > 0:
                 return (d, (rect_p1[0], pose[1]))
@@ -192,7 +194,7 @@ if  __name__ == '__main__':
     distance, intersection = distance_from_borders_full(pose, (0,0), (1,1))
     print(f"x: {pose[0]}, y: {pose[1]}, theta: {pose[2]}")
     print(f"x_inters: {intersection[0]}, y_inters: {intersection[1]}, distance: {distance}")
-    print(f"error: {distance_from_borders(pose, (0,0), (1,1)) - dist((pose[0], pose[1]), intersection)}")
+    print(f"error: {abs(distance - dist((pose[0], pose[1]), intersection)) + abs(distance - distance_from_borders(pose, (0,0), (1,1)))}")
     
     plot_square((0,0), (1,1))
     plot_ray(pose, intersection)
@@ -200,5 +202,7 @@ if  __name__ == '__main__':
     plt.plot(pose[0], pose[1], marker="o", markersize=5, markeredgecolor="green", markerfacecolor="green")
     plt.plot(intersection[0], intersection[1], marker="o", markersize=5, markeredgecolor="green", markerfacecolor="green")
     plt.gca().set_aspect('equal')
-    plt.grid()
+    plt.xticks(np.arange(0, 1.1, 0.1))
+    plt.yticks(np.arange(0, 1.1, 0.1))
+    plt.grid(which='both')
     plt.show()
