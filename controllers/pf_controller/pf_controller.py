@@ -12,7 +12,7 @@ from controller import Supervisor
 from controller import Keyboard
 
 MAX_SPEED = 12.3
-
+TOL = 1e-12
 ############################### HELPER FUNCTIONS ##################################
 
 
@@ -204,7 +204,92 @@ def distance_to_closest_circle(x, y, theta, circles):
 # the angle theta to the positive x-axis.
 # The borders are given by map_limits = [x_min, x_max, y_min, y_max].
 def distance_to_closest_border(x, y, theta, map_limits):
-    return float('inf')
+
+    x_min = map_limits[0]
+    x_max = map_limits[1]
+    y_min = map_limits[2]
+    y_max = map_limits[3]
+    if x > x_min and x < x_max and y > y_min and y < y_max:
+        if abs(math.cos(theta)) < TOL:
+            d = (y_min - y) / math.sin(theta)
+            if d > 0:
+                return d
+            else:
+                d = (y_max - y) / math.sin(theta)
+                return d
+        elif abs(math.sin(theta)) < TOL:
+            d = (x_min - x) / math.cos(theta)
+            if d > 0:
+                return d
+            else:
+                d = (x_max - x) / math.cos(theta)
+                return d
+        else:
+            if math.tan(theta) > 0:
+                eq1 = -math.sin(theta) * (x - x_min) + math.cos(theta) * (y - y_min)
+                eq2 = -math.sin(theta) * (x - x_max) + math.cos(theta) * (y - y_max)
+                if math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 >= 0:
+                    d = (x_min - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (y_max - y) / math.sin(theta)
+                        return d
+                elif math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 < 0:
+                    d = (x_min - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (x_max - x) / math.cos(theta)
+                        return d
+                elif math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 >= 0:
+                    d = (y_min - y) / math.sin(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (y_max - y) / math.sin(theta)
+                        return d
+                else:
+                    d = (x_max - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (y_min - y) / math.sin(theta)
+                        return d
+            else:
+                eq1 = -math.sin(theta) * (x - x_min) + math.cos(theta) * (y - y_max)
+                eq2 = -math.sin(theta) * (x - x_max) + math.cos(theta) * (y - y_min)
+                if math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 >= 0:
+                    d = (x_max - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (y_max - y) / math.sin(theta)
+                        return d
+                elif math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 < 0:
+                    d = (y_min - y) / math.sin(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (y_max - y) / math.sin(theta)
+                        return d
+                elif math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 >= 0:
+                    d = (x_min - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (x_max - x) / math.cos(theta)
+                        return d
+                else:
+                    d = (x_min - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (y_min - y) / math.sin(theta)
+                        return d
+    else:
+        #raise Exception("Robot not inside the borders")    
+        return float('inf')
 
 
 # Returns the expected range measurements for all beams
@@ -327,9 +412,21 @@ def initialize_particles(num_particles, map_limits):
 # it was sampled.
 def resample_particles(particles, weights):
     # replace with your code
-    new_particles = particles
-    new_weights = weights
-
+    n = len(particles)
+    u = np.random.uniform(0,1/n)
+    c = weights[0]
+    new_particles = []
+    new_weights = []
+    for particle in particles:
+        #skip until next threshold reached
+        while u > c:
+            i = i + 1
+            c = c + weights[i]
+        #add new particle
+        new_particles.append(particles[i])
+        new_weights.append(weights[i])
+        #increment threshold
+        u = u + 1/n  
     return new_particles, new_weights
 
 
