@@ -204,7 +204,86 @@ def distance_to_closest_circle(x, y, theta, circles):
 # the angle theta to the positive x-axis.
 # The borders are given by map_limits = [x_min, x_max, y_min, y_max].
 def distance_to_closest_border(x, y, theta, map_limits):
-    return float('inf')
+    if x > map_limits[0] and x < map_limits[1] and y > map_limits[2] and y < map_limits[3]:
+        if abs(math.cos(theta)) < 1e-12:
+            d = (map_limits[2] - y) / math.sin(theta)
+            if d > 0:
+                return d
+            else:
+                d = (map_limits[3] - y) / math.sin(theta)
+                return d
+        elif abs(math.sin(theta)) < 1e-12:
+            d = (map_limits[0] - x) / math.cos(theta)
+            if d > 0:
+                return d
+            else:
+                d = (map_limits[1] - x) / math.cos(theta)
+                return d
+        else:
+            if math.tan(theta) > 0:
+                eq1 = -math.sin(theta) * (x - map_limits[0]) + math.cos(theta) * (y - map_limits[2])
+                eq2 = -math.sin(theta) * (x - map_limits[1]) + math.cos(theta) * (y - map_limits[3])
+                if math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 >= 0:
+                    d = (map_limits[0] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (map_limits[3] - y) / math.sin(theta)
+                        return d
+                elif math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 < 0:
+                    d = (map_limits[0] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (map_limits[1] - x) / math.cos(theta)
+                        return d
+                elif math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 >= 0:
+                    d = (map_limits[2] - y) / math.sin(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (map_limits[3] - y) / math.sin(theta)
+                        return d
+                else:
+                    d = (map_limits[1] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (map_limits[2] - y) / math.sin(theta)
+                        return d
+            else:
+                eq1 = -math.sin(theta) * (x - map_limits[0]) + math.cos(theta) * (y - map_limits[3])
+                eq2 = -math.sin(theta) * (x - map_limits[1]) + math.cos(theta) * (y - map_limits[2])
+                if math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 >= 0:
+                    d = (map_limits[1] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (map_limits[3] - y) / math.sin(theta)
+                        return d
+                elif math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 < 0:
+                    d = (map_limits[2] - y) / math.sin(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (map_limits[3] - y) / math.sin(theta)
+                        return d
+                elif math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 >= 0:
+                    d = (map_limits[0] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (map_limits[1] - x) / math.cos(theta)
+                        return d
+                else:
+                    d = (map_limits[0] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else:
+                        d = (map_limits[2] - y) / math.sin(theta)
+                        return d
+    else:
+        return float('inf')
 
 
 # Returns the expected range measurements for all beams
@@ -326,9 +405,16 @@ def initialize_particles(num_particles, map_limits):
 # The weight of a new particle is the same as the weight from which
 # it was sampled.
 def resample_particles(particles, weights):
-    # replace with your code
-    new_particles = particles
-    new_weights = weights
+    new_particles = []
+    cdf = np.cumsum(weights)
+    thres = np.random.uniform(0, 1.0/len(particles))
+    i = 0
+    for m in range(len(particles)):
+        u = thres + m * 1.0/len(particles)
+        while u > cdf[i]:
+            i += 1
+        new_particles.append(particles[i])
+    new_weights = np.ones(len(particles)) / len(particles)
 
     return new_particles, new_weights
 
@@ -337,7 +423,10 @@ def resample_particles(particles, weights):
 # with randomly sampled ones.
 # Returns the new set of particles
 def add_random_particles(particles, weights, map_limits):
-    # your code here
+    sorted_args = np.array(weights).argsort()
+    for i in sorted_args[:int(len(particles)/2)].tolist():
+        particles[i] = sample_random_particle(map_limits)
+        
     return particles
 
 
@@ -433,7 +522,7 @@ def main():
         last_pose = curr_pose
 
         # insert random particles
-        #particles = add_random_particles(particles, weights, map_limits)
+        particles = add_random_particles(particles, weights, map_limits)
 
         # predict particles by sampling from motion model with odometry info
         particles = sample_motion_model(odometry, particles)
