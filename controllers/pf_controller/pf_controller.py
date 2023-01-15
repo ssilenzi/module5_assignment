@@ -130,20 +130,24 @@ def get_pose_delta(last_pose, curr_pose):
 
 # Returns the odometry measurement between two poses
 # according to the odometry-based motion model.
-def get_odometry(last_pose, curr_pose):
-    x = last_pose[0]
-    y = last_pose[1]
-    x_bar = curr_pose[0]
-    y_bar = curr_pose[1]
-    delta_trans = np.sqrt((x_bar - x) ** 2 + (y_bar - y) ** 2)
-    delta_rot = normalize_angle(last_pose[2] - curr_pose[2])
+INTERAXIS = 0.34
+RADIUS = 0.195 / 2
+TRANSFORM_ROBOT_TO_WHEEL = np.array([[1/RADIUS, -INTERAXIS/(2*RADIUS)],
+                                        [1/RADIUS, INTERAXIS/(2*RADIUS)]])
+TRANSFORM_WHEEL_TO_ROBOT = np.linalg.inv(TRANSFORM_ROBOT_TO_WHEEL)
+last_encoder_reading = [0, 0]
+def get_odometry(leftSensor, rightSensor):
+    global last_encoder_reading
+    
+    curr_encoder_reading = [leftSensor.getValue(), rightSensor.getValue()]
+    wheel_rot = np.array(curr_encoder_reading) - np.array(last_encoder_reading)
+    robot_trans_rot = TRANSFORM_WHEEL_TO_ROBOT @ wheel_rot
+    delta_trans = robot_trans_rot[0]
+    delta_rot = robot_trans_rot[1]
     delta_rot1 = delta_rot / 2.0
     delta_rot2 = delta_rot / 2.0
-
-    if (delta_trans > 0.01):
-        delta_rot1 = normalize_angle(math.atan2(y_bar - y, x_bar - x) - last_pose[2])
-        delta_rot2 = normalize_angle(curr_pose[2] - last_pose[2] - delta_rot1)
-
+    
+    last_encoder_reading = curr_encoder_reading
     return [delta_rot1, delta_rot2, delta_trans]
 
 
@@ -423,8 +427,8 @@ def resample_particles(particles, weights):
 # with randomly sampled ones.
 # Returns the new set of particles
 def add_random_particles(particles, weights, map_limits):
-    sorted_args = np.array(weights).argsort()
-    for i in sorted_args[:int(len(particles)/2)].tolist():
+    sorted_indexes = np.array(weights).argsort()
+    for i in sorted_indexes[0:int(len(particles)/2)].tolist():
         particles[i] = sample_random_particle(map_limits)
         
     return particles
@@ -518,7 +522,7 @@ def main():
         scan.reverse()
 
         # compute odometry from pose difference
-        odometry = get_odometry(last_pose, curr_pose)
+        odometry = get_odometry(leftSensor, rightSensor)
         last_pose = curr_pose
 
         # insert random particles
