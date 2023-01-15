@@ -140,10 +140,10 @@ def get_odometry(leftSensor, rightSensor):
     global last_encoder_reading
     
     curr_encoder_reading = [leftSensor.getValue(), rightSensor.getValue()]
-    wheel_rot = np.array(curr_encoder_reading) - np.array(last_encoder_reading)
-    robot_trans_rot = TRANSFORM_WHEEL_TO_ROBOT @ wheel_rot
-    delta_trans = robot_trans_rot[0]
-    delta_rot = robot_trans_rot[1]
+    delta_wheel_rot = np.array(curr_encoder_reading) - np.array(last_encoder_reading)
+    delta_robot_trans_rot = TRANSFORM_WHEEL_TO_ROBOT @ delta_wheel_rot
+    delta_trans = delta_robot_trans_rot[0]
+    delta_rot = delta_robot_trans_rot[1]
     delta_rot1 = delta_rot / 2.0
     delta_rot2 = delta_rot / 2.0
     
@@ -427,9 +427,8 @@ def resample_particles(particles, weights):
 # with randomly sampled ones.
 # Returns the new set of particles
 def add_random_particles(particles, weights, map_limits):
-    sorted_indexes = sorted(range(len(particles)), key=weights.__getitem__)[0:int(len(particles)/2)]
-    for i in sorted_indexes:
-        particles[i] = sample_random_particle(map_limits)
+    for ii in sorted(range(len(particles)), key=weights.__getitem__)[0:int(len(particles)/2)]:
+        particles[ii] = sample_random_particle(map_limits)
         
     return particles
 
