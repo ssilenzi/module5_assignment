@@ -130,20 +130,24 @@ def get_pose_delta(last_pose, curr_pose):
 
 # Returns the odometry measurement between two poses
 # according to the odometry-based motion model.
-def get_odometry(last_pose, curr_pose):
-    x = last_pose[0]
-    y = last_pose[1]
-    x_bar = curr_pose[0]
-    y_bar = curr_pose[1]
-    delta_trans = np.sqrt((x_bar - x) ** 2 + (y_bar - y) ** 2)
-    delta_rot = normalize_angle(last_pose[2] - curr_pose[2])
+INTERAXIS = 0.34
+RADIUS = 0.195 / 2
+TRANSFORM_ROBOT_TO_WHEEL = np.array([[1/RADIUS, -INTERAXIS/(2*RADIUS)],
+                                        [1/RADIUS, INTERAXIS/(2*RADIUS)]])
+TRANSFORM_WHEEL_TO_ROBOT = np.linalg.inv(TRANSFORM_ROBOT_TO_WHEEL)
+last_encoder_reading = [0, 0]
+def get_odometry(leftSensor, rightSensor):
+    global last_encoder_reading
+    
+    curr_encoder_reading = [leftSensor.getValue(), rightSensor.getValue()]
+    delta_wheel_rot = np.array(curr_encoder_reading) - np.array(last_encoder_reading)
+    delta_robot_trans_rot = TRANSFORM_WHEEL_TO_ROBOT @ delta_wheel_rot
+    delta_trans = delta_robot_trans_rot[0]
+    delta_rot = delta_robot_trans_rot[1]
     delta_rot1 = delta_rot / 2.0
     delta_rot2 = delta_rot / 2.0
-
-    if (delta_trans > 0.01):
-        delta_rot1 = normalize_angle(math.atan2(y_bar - y, x_bar - x) - last_pose[2])
-        delta_rot2 = normalize_angle(curr_pose[2] - last_pose[2] - delta_rot1)
-
+    
+    last_encoder_reading = curr_encoder_reading
     return [delta_rot1, delta_rot2, delta_trans]
 
 
@@ -204,7 +208,126 @@ def distance_to_closest_circle(x, y, theta, circles):
 # the angle theta to the positive x-axis.
 # The borders are given by map_limits = [x_min, x_max, y_min, y_max].
 def distance_to_closest_border(x, y, theta, map_limits):
-    return float('inf')
+    if x >= map_limits[0] and x <= map_limits[1] and y >= map_limits[2] and y <= map_limits[3]:
+        if abs(math.cos(theta)) < 1e-12:
+            # check the first border
+            d = (map_limits[2] - y) / math.sin(theta)
+            if d > 0:
+                return d
+            else: # change border
+                d = (map_limits[3] - y) / math.sin(theta)
+                if d > 0:
+                    return d
+                else: # on the border, zero distance
+                    return 0.0
+        elif abs(math.sin(theta)) < 1e-12:
+            # check the first border
+            d = (map_limits[0] - x) / math.cos(theta)
+            if d > 0:
+                return d
+            else: # change border
+                d = (map_limits[1] - x) / math.cos(theta)
+                if d > 0:
+                    return d
+                else: # on the border, zero distance
+                    return 0.0
+        else: # theta is neither 0 nor pi/2
+            if math.tan(theta) > 0:
+                eq1 = -math.sin(theta) * (x - map_limits[0]) + math.cos(theta) * (y - map_limits[2])
+                eq2 = -math.sin(theta) * (x - map_limits[1]) + math.cos(theta) * (y - map_limits[3])
+                if math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 >= 0:
+                    # check the first border
+                    d = (map_limits[0] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else: # change border
+                        d = (map_limits[3] - y) / math.sin(theta)
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+                elif math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 < 0:
+                    # check the first border
+                    d = (map_limits[0] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else: # change border
+                        d = (map_limits[1] - x) / math.cos(theta)
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+                elif math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 >= 0:
+                    # check the first border
+                    d = (map_limits[2] - y) / math.sin(theta)
+                    if d > 0:
+                        return d
+                    else: # change border
+                        d = (map_limits[3] - y) / math.sin(theta)
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+                else: # math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 < 0:
+                    # check the first border
+                    d = (map_limits[1] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else: # change border
+                        d = (map_limits[2] - y) / math.sin(theta)
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+            else: # math.tan(theta) < 0
+                eq1 = -math.sin(theta) * (x - map_limits[0]) + math.cos(theta) * (y - map_limits[3])
+                eq2 = -math.sin(theta) * (x - map_limits[1]) + math.cos(theta) * (y - map_limits[2])
+                if math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 >= 0:
+                    # check the first border
+                    d = (map_limits[1] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else: # change border
+                        d = (map_limits[3] - y) / math.sin(theta)
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+                elif math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 < 0:
+                    # check the first border
+                    d = (map_limits[2] - y) / math.sin(theta)
+                    if d > 0:
+                        return d
+                    else: # change border
+                        d = (map_limits[3] - y) / math.sin(theta)
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+                elif math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 >= 0:
+                    # check the first border
+                    d = (map_limits[0] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else: # change border
+                        d = (map_limits[1] - x) / math.cos(theta)
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+                else: # math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 < 0
+                    # check the first border
+                    d = (map_limits[0] - x) / math.cos(theta)
+                    if d > 0:
+                        return d
+                    else: # change border
+                        d = (map_limits[2] - y) / math.sin(theta)
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+    else: # out of the map
+        return float('inf')
 
 
 # Returns the expected range measurements for all beams
@@ -271,9 +394,9 @@ def sample_motion_model(odometry, particles):
     noise = [0.5, 0.5, 0.2, 0.2]
 
     # standard deviations of motion noise
-    sigma_delta_rot1 = noise[0] * abs(delta_rot1) + noise[1] * delta_trans
-    sigma_delta_trans = noise[2] * delta_trans + noise[3] * (abs(delta_rot1) + abs(delta_rot2))
-    sigma_delta_rot2 = noise[0] * abs(delta_rot2) + noise[1] * delta_trans
+    sigma_delta_rot1 = noise[0] * abs(delta_rot1) + noise[1] * abs(delta_trans)
+    sigma_delta_trans = noise[2] * abs(delta_trans) + noise[3] * (abs(delta_rot1) + abs(delta_rot2))
+    sigma_delta_rot2 = noise[0] * abs(delta_rot2) + noise[1] * abs(delta_trans)
 
     # "move" each particle according to the odometry measurements plus sampled noise
     # to generate new particle set
@@ -326,9 +449,16 @@ def initialize_particles(num_particles, map_limits):
 # The weight of a new particle is the same as the weight from which
 # it was sampled.
 def resample_particles(particles, weights):
-    # replace with your code
-    new_particles = particles
-    new_weights = weights
+    new_particles = []
+    cdf = np.cumsum(weights)
+    thres = np.random.uniform(0, 1.0/len(particles))
+    i = 0
+    for m in range(len(particles)):
+        u = thres + m * 1.0/len(particles)
+        while u > cdf[i]:
+            i += 1
+        new_particles.append(particles[i])
+    new_weights = np.ones(len(particles)) / len(particles)
 
     return new_particles, new_weights
 
@@ -337,7 +467,9 @@ def resample_particles(particles, weights):
 # with randomly sampled ones.
 # Returns the new set of particles
 def add_random_particles(particles, weights, map_limits):
-    # your code here
+    for ii in sorted(range(len(particles)), key=weights.__getitem__)[0:int(len(particles)/2)]:
+        particles[ii] = sample_random_particle(map_limits)
+        
     return particles
 
 
@@ -429,11 +561,11 @@ def main():
         scan.reverse()
 
         # compute odometry from pose difference
-        odometry = get_odometry(last_pose, curr_pose)
+        odometry = get_odometry(leftSensor, rightSensor)
         last_pose = curr_pose
 
         # insert random particles
-        #particles = add_random_particles(particles, weights, map_limits)
+        particles = add_random_particles(particles, weights, map_limits)
 
         # predict particles by sampling from motion model with odometry info
         particles = sample_motion_model(odometry, particles)
