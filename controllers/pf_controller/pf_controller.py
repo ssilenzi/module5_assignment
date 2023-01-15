@@ -208,85 +208,125 @@ def distance_to_closest_circle(x, y, theta, circles):
 # the angle theta to the positive x-axis.
 # The borders are given by map_limits = [x_min, x_max, y_min, y_max].
 def distance_to_closest_border(x, y, theta, map_limits):
-    if x > map_limits[0] and x < map_limits[1] and y > map_limits[2] and y < map_limits[3]:
+    if x >= map_limits[0] and x <= map_limits[1] and y >= map_limits[2] and y <= map_limits[3]:
         if abs(math.cos(theta)) < 1e-12:
+            # check the first border
             d = (map_limits[2] - y) / math.sin(theta)
             if d > 0:
                 return d
-            else:
+            else: # change border
                 d = (map_limits[3] - y) / math.sin(theta)
-                return d
+                if d > 0:
+                    return d
+                else: # on the border, zero distance
+                    return 0.0
         elif abs(math.sin(theta)) < 1e-12:
+            # check the first border
             d = (map_limits[0] - x) / math.cos(theta)
             if d > 0:
                 return d
-            else:
+            else: # change border
                 d = (map_limits[1] - x) / math.cos(theta)
-                return d
-        else:
+                if d > 0:
+                    return d
+                else: # on the border, zero distance
+                    return 0.0
+        else: # theta is neither 0 nor pi/2
             if math.tan(theta) > 0:
                 eq1 = -math.sin(theta) * (x - map_limits[0]) + math.cos(theta) * (y - map_limits[2])
                 eq2 = -math.sin(theta) * (x - map_limits[1]) + math.cos(theta) * (y - map_limits[3])
                 if math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 >= 0:
+                    # check the first border
                     d = (map_limits[0] - x) / math.cos(theta)
                     if d > 0:
                         return d
-                    else:
+                    else: # change border
                         d = (map_limits[3] - y) / math.sin(theta)
-                        return d
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
                 elif math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 < 0:
+                    # check the first border
                     d = (map_limits[0] - x) / math.cos(theta)
                     if d > 0:
                         return d
-                    else:
+                    else: # change border
                         d = (map_limits[1] - x) / math.cos(theta)
-                        return d
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
                 elif math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 >= 0:
+                    # check the first border
                     d = (map_limits[2] - y) / math.sin(theta)
                     if d > 0:
                         return d
-                    else:
+                    else: # change border
                         d = (map_limits[3] - y) / math.sin(theta)
-                        return d
-                else:
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+                else: # math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 < 0:
+                    # check the first border
                     d = (map_limits[1] - x) / math.cos(theta)
                     if d > 0:
                         return d
-                    else:
+                    else: # change border
                         d = (map_limits[2] - y) / math.sin(theta)
-                        return d
-            else:
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+            else: # math.tan(theta) < 0
                 eq1 = -math.sin(theta) * (x - map_limits[0]) + math.cos(theta) * (y - map_limits[3])
                 eq2 = -math.sin(theta) * (x - map_limits[1]) + math.cos(theta) * (y - map_limits[2])
                 if math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 >= 0:
+                    # check the first border
                     d = (map_limits[1] - x) / math.cos(theta)
                     if d > 0:
                         return d
-                    else:
+                    else: # change border
                         d = (map_limits[3] - y) / math.sin(theta)
-                        return d
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
                 elif math.cos(theta) * eq1 >= 0 and math.cos(theta) * eq2 < 0:
+                    # check the first border
                     d = (map_limits[2] - y) / math.sin(theta)
                     if d > 0:
                         return d
-                    else:
+                    else: # change border
                         d = (map_limits[3] - y) / math.sin(theta)
-                        return d
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
                 elif math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 >= 0:
+                    # check the first border
                     d = (map_limits[0] - x) / math.cos(theta)
                     if d > 0:
                         return d
-                    else:
+                    else: # change border
                         d = (map_limits[1] - x) / math.cos(theta)
-                        return d
-                else:
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+                else: # math.cos(theta) * eq1 < 0 and math.cos(theta) * eq2 < 0
+                    # check the first border
                     d = (map_limits[0] - x) / math.cos(theta)
                     if d > 0:
                         return d
-                    else:
+                    else: # change border
                         d = (map_limits[2] - y) / math.sin(theta)
-                        return d
-    else:
+                        if d > 0:
+                            return d
+                        else: # on the border, zero distance
+                            return 0.0
+    else: # out of the map
         return float('inf')
 
 
