@@ -354,9 +354,9 @@ def sample_motion_model(odometry, particles):
     noise = [0.5, 0.5, 0.2, 0.2]
 
     # standard deviations of motion noise
-    sigma_delta_rot1 = noise[0] * abs(delta_rot1) + noise[1] * delta_trans
-    sigma_delta_trans = noise[2] * delta_trans + noise[3] * (abs(delta_rot1) + abs(delta_rot2))
-    sigma_delta_rot2 = noise[0] * abs(delta_rot2) + noise[1] * delta_trans
+    sigma_delta_rot1 = noise[0] * abs(delta_rot1) + noise[1] * abs(delta_trans)
+    sigma_delta_trans = noise[2] * abs(delta_trans) + noise[3] * (abs(delta_rot1) + abs(delta_rot2))
+    sigma_delta_rot2 = noise[0] * abs(delta_rot2) + noise[1] * abs(delta_trans)
 
     # "move" each particle according to the odometry measurements plus sampled noise
     # to generate new particle set
@@ -427,8 +427,8 @@ def resample_particles(particles, weights):
 # with randomly sampled ones.
 # Returns the new set of particles
 def add_random_particles(particles, weights, map_limits):
-    sorted_indexes = np.array(weights).argsort()
-    for i in sorted_indexes[0:int(len(particles)/2)].tolist():
+    sorted_indexes = sorted(range(len(particles)), key=weights.__getitem__)[0:int(len(particles)/2)]
+    for i in sorted_indexes:
         particles[i] = sample_random_particle(map_limits)
         
     return particles
